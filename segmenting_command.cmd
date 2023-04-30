@@ -1,0 +1,1 @@
+ffmpeg -y -i %1 -c:a aac -b:a 128k -muxdelay 0 -f segment -sc_threshold 0 -segment_time %4 -segment_list %2 -segment_format mpegts %3
