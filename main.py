@@ -10,12 +10,14 @@ from stream_request_fetch_handler import fetch as stream_fetch
 from record_fetch_handler import record_fetch_handler
 from search_fetch_handler import search_fetch
 from socket_wrapper_iterator import RequestIterable
+from profile_pic_fetch_handler import profile_pic_fetch
 
 
 STREAM = 'GET'
 USER_REQ = 'UserProcessor'
 RECORD_FETCH = 'Fetch'
 SEARCH_FETCH = 'Search'
+PROFILE_PIC_FECH = 'Gui/Get_Profile_Picture'
 
 MAX_WORKERS = 35
 
@@ -32,7 +34,7 @@ def main():
     stream_fetch_to_send_queue = Queue()
     user_req_queue = Queue()
     user_req_fetch_to_send_queue = Queue()
-    sock_to_uname_hash_map = {}
+    sock_to_uname_hash_map = dict()
     stop = False
     #stream_fetcher_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
     #for i in range(MAX_WORKERS):
@@ -45,6 +47,14 @@ def main():
         stream_sender_pool.submit(sender, stream_fetch_to_send_queue, stop)
     #stream_sender_thread = threading.Thread(target=sender, args=(stream_fetch_to_send_queue, stop))
     #stream_sender_thread.start()
+
+    profile_pic_fetch_queue = Queue()
+    profile_pic_send_queue = Queue()
+    profile_pic_fetch_thread = threading.Thread(target=profile_pic_fetch, args=(profile_pic_fetch_queue,sock_to_uname_hash_map, profile_pic_send_queue))
+    profile_pic_fetch_thread.start()
+
+    profile_pic_send_thread = threading.Thread(target=sender, args=(profile_pic_send_queue, stop))
+    profile_pic_send_thread.start()
 
     #user_proc_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
     #for i in range(MAX_WORKERS):
@@ -94,9 +104,13 @@ def main():
                     record_fetch_queue.put((data, cli_sock))
                 elif data[:len(SEARCH_FETCH)] == SEARCH_FETCH:
                     search_fetch_queue.put((data, cli_sock))
+                elif data == PROFILE_PIC_FECH:
+                    profile_pic_fetch_queue.put((data, cli_sock))
         except ConnectionError:
             client_sel.unregister(cli_sock)
             socks_receive.pop(cli_sock)
+            if cli_sock in sock_to_uname_hash_map:
+                sock_to_uname_hash_map.pop(cli_sock)
             return
 
 

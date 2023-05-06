@@ -64,7 +64,7 @@ def fetch(request_queue, output_queue, stop, sock_to_uname_hash_map):
         request, sock = request_queue.get()
         response, uname_hash, auth_successful = process_request(request, crsr)
         if auth_successful:
-            sock_to_uname_hash_map[uname_hash] = process_request(request, crsr)
+            sock_to_uname_hash_map[sock] = uname_hash
         output_queue.put((response, sock))
 
 
