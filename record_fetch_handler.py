@@ -5,12 +5,13 @@ import sqlite3
 GET_PIC_PATH = lambda record_name: f'music/{record_name}/picture.jpg'
 GET_RECORD_PATH = lambda record_name: f'music/{record_name}/record.txt'
 RESPONSE_PREFIX = b'Gui/Fetched/'
-FORMAT_LIKES_AND_LISTENNINGS = lambda name, likes, listennings: f'name={name}&likes={likes}&listennings={listennings}&picture='.encode()
+FORMAT_LIKES_AND_LISTENNINGS = lambda name, likes, listennings, type: f'name={name}&likes={likes}&listennings={listennings}&type={type}&picture='.encode()
 SONG_DATABASE = 'songs.db'
-FETCH_RECORD_LIKES_AND_LISTENNINGS = lambda name: f'SELECT likes, listennings FROM records WHERE name="{name}"'
+FETCH_RECORD_SPECS = lambda name: f'SELECT likes, listennings, type FROM records WHERE name="{name}"'
 IS_PLAYLIST_TRACKLIST = '^tracks:'
 PLAYLIST_RESPONSE_PREFIX = 'Gui/Fetched/'.encode()
 GET_TRACKLIST_PATH = lambda playlist: f'music/{playlist}/tracklist.txt'
+INT_TO_TYPE_STRING = {0 : 'Song', 1 : 'Playlist'}
 
 
 def record_fetch_handler(fetch_queue, send_queue):
@@ -32,10 +33,11 @@ def record_fetch_handler(fetch_queue, send_queue):
             send_queue.put((fetch_tracklist(record_name), cli_sock))
             continue
         try:
-            likes, listennings = crsr.execute(FETCH_RECORD_LIKES_AND_LISTENNINGS(record_name)).fetchall()[0]
+            likes, listennings, type_int = crsr.execute(FETCH_RECORD_SPECS(record_name)).fetchall()[0]
+            type = INT_TO_TYPE_STRING[type_int]
         except:
             raise Exception(f'invalid record name: {record_name}\n request was {fetch_request}')
-        response = bytearray(RESPONSE_PREFIX + FORMAT_LIKES_AND_LISTENNINGS(record_name, likes, listennings))
+        response = bytearray(RESPONSE_PREFIX + FORMAT_LIKES_AND_LISTENNINGS(record_name, likes, listennings, type))
         with open(GET_PIC_PATH(record_name), 'rb') as pic_file:
             pic_data = pic_file.read()
             response.extend(pic_data)
