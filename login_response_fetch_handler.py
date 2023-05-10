@@ -10,7 +10,7 @@ CREATE_USER_TABLE = """CREATE TABLE users(
              PRIMARY KEY(username_hash));"""
 CLEAR_TABLE = """DELETE FROM users WHERE true;"""
 DROP_USER_TABLE ="DROP TABLE users"
-SELECT = lambda table, fields, condition : str.format("SELECT {} FROM {} WHERE {};", fields, table, condition)
+SELECT = lambda table, fields : str.format("SELECT {} FROM {} WHERE username_hash=?;", fields, table)
 INSERT = lambda table, values : str.format('INSERT INTO {} VALUES({});', table, values)
 
 LOG_NEW_USER = "UserProcessor/SignUp"
@@ -30,7 +30,7 @@ def log_new_user(arguments, crsr):
         :return:
     """
     uname_hash = hash_func(arguments[0].encode()).hexdigest()
-    if list(crsr.execute(SELECT('users', '*', str.format('username_hash = "{}"', uname_hash)))):
+    if list(crsr.execute(SELECT('users', '*',), (uname_hash,))):
         return USER_ALREADY_EXISTS, uname_hash, False
     password_hash = hash_func(arguments[1].encode()).hexdigest()
     crsr.execute(INSERT('users', str.format('"{}","{}","{}"', uname_hash, password_hash, arguments[2])))
@@ -44,7 +44,7 @@ def log_returning_user(arguments, crsr):
     """
     uname_hash = hash_func(arguments[0].encode()).hexdigest()
     password_hash = hash_func(arguments[1].encode()).hexdigest()
-    user = crsr.execute(SELECT('users', 'password_hash', str.format('username_hash = "{}"', uname_hash))).fetchall()
+    user = crsr.execute(SELECT('users', 'password_hash'), (uname_hash,)).fetchall()
     if not user:
         return NO_SUCH_USER, uname_hash, False
     if not user[0][0] == password_hash:

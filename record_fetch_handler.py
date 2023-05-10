@@ -7,7 +7,7 @@ GET_RECORD_PATH = lambda record_name: f'music/{record_name}/record.txt'
 RESPONSE_PREFIX = b'Gui/Fetched/'
 FORMAT_LIKES_AND_LISTENNINGS = lambda name, likes, listennings, type: f'name={name}&likes={likes}&listennings={listennings}&type={type}&picture='.encode()
 SONG_DATABASE = 'songs.db'
-FETCH_RECORD_SPECS = lambda name: f'SELECT likes, listennings, type FROM records WHERE name="{name}"'
+FETCH_RECORD_SPECS = 'SELECT likes, listennings, type FROM records WHERE name=?'
 IS_PLAYLIST_TRACKLIST = '^tracks:'
 PLAYLIST_RESPONSE_PREFIX = 'Gui/Fetched/'.encode()
 GET_TRACKLIST_PATH = lambda playlist: f'music/{playlist}/tracklist.txt'
@@ -33,7 +33,7 @@ def record_fetch_handler(fetch_queue, send_queue):
             send_queue.put((fetch_tracklist(record_name), cli_sock))
             continue
         try:
-            likes, listennings, type_int = crsr.execute(FETCH_RECORD_SPECS(record_name)).fetchall()[0]
+            likes, listennings, type_int = crsr.execute(FETCH_RECORD_SPECS, (record_name,)).fetchall()[0]
             type = INT_TO_TYPE_STRING[type_int]
         except:
             raise Exception(f'invalid record name: {record_name}\n request was {fetch_request}')

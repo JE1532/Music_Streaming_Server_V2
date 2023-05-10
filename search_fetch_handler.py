@@ -7,7 +7,8 @@ SONG_RECOMMENDATION_PATH = 'music/song_recommendations.txt'
 ALBUM_RECOMMENDATIONS_PATH = 'music/playlist_recommendations.txt'
 RESPONSE_PREFIX = 'Gui/Searched/'
 DATABASE_PATH = 'songs.db'
-SEARCH = lambda prompt: f"SELECT name FROM records WHERE name LIKE '%{prompt}%' ORDER BY listennings LIMIT 10"
+SEARCH = "SELECT name FROM records WHERE name LIKE ? ORDER BY listennings LIMIT 10"
+PREPARE_PROMPT = lambda prompt: '%' + prompt + '%'
 RECORD_RESPONSE_FORMAT = lambda name, serial: f'#{serial}\r\n{name}\r\n'
 
 
@@ -25,7 +26,7 @@ def search_fetch(search_queue, send_queue):
                 send_queue.put((RESPONSE_PREFIX.encode() + f.read(), cli_sock))
         else:
             prompt = to_search.split('=')[1]
-            crsr.execute(SEARCH(prompt))
+            crsr.execute(SEARCH, (PREPARE_PROMPT(prompt),))
             relevant_records = crsr.fetchall()
             send_queue.put(((RESPONSE_PREFIX + construct_response_file(relevant_records)).encode(), cli_sock))
 
