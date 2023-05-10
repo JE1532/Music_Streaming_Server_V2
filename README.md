@@ -1,11 +1,11 @@
 TODO:
-1. add TLS
-2. encrypt all approaches to database with base64 to prevent SQL injection.
-3. fix scrollbar bugs
-4. fix vlc bug - server stops being able to stream after streaming to vlc once
-5. add upload mechanism for profile pictures
-6. release unused picture files
-7. add upload mechanism for records (=songs and albums)
+1. fix scrollbar bugs
+2. fix stream processor bugs
+3. fix vlc bug - server stops being able to stream after streaming to vlc once
+4. add upload mechanism for profile pictures
+5. release unused picture files
+6. add upload mechanism for records (=songs and albums)
+7. look at bugs that occur when song (play) buttons (records with images) are pressed many times in a short span of time.
 
 
 BUG-LOG:
