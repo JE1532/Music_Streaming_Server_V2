@@ -31,15 +31,10 @@ Content-Type: audio/x-mpegurl\r
 Content-Length: {}\r
 Connection: keep-alive\r
 Last-Modified: Thu, 13 Oct 2016 00:25:58 GMT\r
-x-amz-meta-s3b-last-modified: 20161013T002249Z\r
 Accept-Ranges: bytes\r
-Server: AmazonS3\r
+Server: MyServer\r
 Date: Tue, 11 Apr 2023 05:34:09 GMT\r
-ETag: "dcb3d39bd45f7137bcdf271f8453b11a"\r
-X-Cache: Hit from cloudfront\r
 Via: 1.1 localhost:9010 (CloudFront)\r
-X-Amz-Cf-Pop: CDG52-P4\r
-X-Amz-Cf-Id: RyhC7Amw-6unAfrNLU_zcnXl7ges94DPhttP-owhqE1TCZ2jSa7kww==\r
 Age: 11834\r
 \r
 """
