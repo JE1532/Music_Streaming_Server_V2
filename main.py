@@ -3,6 +3,7 @@ import threading
 import concurrent.futures
 from queue import Queue
 import socket
+import ssl
 
 from send_handler import sender
 from login_response_fetch_handler import fetch as login_fetch
@@ -22,12 +23,23 @@ PROFILE_PIC_FECH = 'Gui/Get_Profile_Picture'
 MAX_WORKERS = 35
 
 SERVER = ('0.0.0.0', 9010)
+KEYFILE = 'server.key'
+CERTFILE = 'server.crt'
+
+SUFFIX = b'@'
 
 
 
 def main():
     client_sel = selectors.DefaultSelector()
     ser_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    ser_sock = ssl.wrap_socket(
+        ser_sock,
+        server_side=True,
+        keyfile=KEYFILE,
+        certfile=CERTFILE,
+        ssl_version=ssl.PROTOCOL_TLSv1_2
+    )
     ser_sock.bind(SERVER)
     ser_sock.listen(100)
     stream_queue = Queue()
@@ -44,7 +56,7 @@ def main():
 
     stream_sender_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
     for i in range(MAX_WORKERS):
-        stream_sender_pool.submit(sender, stream_fetch_to_send_queue, stop)
+        stream_sender_pool.submit(sender, stream_fetch_to_send_queue, stop, SUFFIX)
     #stream_sender_thread = threading.Thread(target=sender, args=(stream_fetch_to_send_queue, stop))
     #stream_sender_thread.start()
 
@@ -53,7 +65,7 @@ def main():
     profile_pic_fetch_thread = threading.Thread(target=profile_pic_fetch, args=(profile_pic_fetch_queue,sock_to_uname_hash_map, profile_pic_send_queue))
     profile_pic_fetch_thread.start()
 
-    profile_pic_send_thread = threading.Thread(target=sender, args=(profile_pic_send_queue, stop))
+    profile_pic_send_thread = threading.Thread(target=sender, args=(profile_pic_send_queue, stop, SUFFIX))
     profile_pic_send_thread.start()
 
     #user_proc_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
@@ -65,7 +77,7 @@ def main():
     #user_proc_sender_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
     #for i in range(MAX_WORKERS):
     #    user_proc_sender_pool.submit(sender, user_req_fetch_to_send_queue, stop)
-    user_proc_sender_thread = threading.Thread(target=sender, args=(user_req_fetch_to_send_queue, stop))
+    user_proc_sender_thread = threading.Thread(target=sender, args=(user_req_fetch_to_send_queue, stop, SUFFIX))
     user_proc_sender_thread.start()
 
     search_fetch_queue = Queue()
@@ -79,10 +91,10 @@ def main():
     record_fetch_thread = threading.Thread(target=record_fetch_handler, args=(record_fetch_queue, record_fetch_send_queue))
     record_fetch_thread.start()
 
-    search_sender_thead = threading.Thread(target=sender, args=(search_send_queue, stop))
+    search_sender_thead = threading.Thread(target=sender, args=(search_send_queue, stop, SUFFIX))
     search_sender_thead.start()
 
-    record_sender_thread = threading.Thread(target=sender, args=(record_fetch_send_queue, stop))
+    record_sender_thread = threading.Thread(target=sender, args=(record_fetch_send_queue, stop, SUFFIX))
     record_sender_thread.start()
 
 

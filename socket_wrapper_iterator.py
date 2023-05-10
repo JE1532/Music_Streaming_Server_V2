@@ -1,3 +1,6 @@
+import ssl
+
+
 CHUNK_SIZE = 256
 HTTP_REQ = b'GET'
 
@@ -7,7 +10,7 @@ def recvall(socket):
     while True:
         try:
             data.extend(socket.recv(CHUNK_SIZE))
-        except BlockingIOError:
+        except ssl.SSLWantReadError:
             break
     return bytes(data)
 
