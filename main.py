@@ -20,7 +20,7 @@ RECORD_FETCH = 'Fetch'
 SEARCH_FETCH = 'Search'
 PROFILE_PIC_FECH = 'Gui/Get_Profile_Picture'
 
-MAX_WORKERS = 35
+MAX_WORKERS = 1
 
 SERVER = ('0.0.0.0', 9010)
 KEYFILE = 'server.key'
