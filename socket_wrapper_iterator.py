@@ -9,7 +9,10 @@ def recvall(socket):
     data = bytearray()
     while True:
         try:
-            data.extend(socket.recv(CHUNK_SIZE))
+            curr_chunk = socket.recv(CHUNK_SIZE)
+            data.extend(curr_chunk)
+            if curr_chunk == b'':
+                break
         except ssl.SSLWantReadError:
             break
     return bytes(data)

@@ -29,6 +29,34 @@ CERTFILE = 'server.crt'
 SUFFIX = b'@'
 
 
+class ThreadSafeSocket:
+    def __init__(self, sock):
+        self.sock = sock
+        self.lock = threading.Lock()
+
+
+    #override
+    def recv(self, bufsize=1024, flags=0):
+        self.lock.acquire()
+        try:
+            data = self.sock.recv(bufsize, flags)
+        except ssl.SSLWantReadError as e:
+            raise e
+        finally:
+            self.lock.release()
+        return data
+
+    #override
+    def send(self, data, flags=0):
+        self.lock.acquire()
+        try:
+            self.sock.send(data, flags)
+        except ssl.SSLWantWriteError as e:
+            raise e
+        finally:
+            self.lock.release()
+
+
 
 def main():
     client_sel = selectors.DefaultSelector()
@@ -38,7 +66,7 @@ def main():
         server_side=True,
         keyfile=KEYFILE,
         certfile=CERTFILE,
-        ssl_version=ssl.PROTOCOL_TLSv1_2
+        ssl_version=ssl.PROTOCOL_TLSv1_2,
     )
     ser_sock.bind(SERVER)
     ser_sock.listen(100)
@@ -56,7 +84,7 @@ def main():
 
     stream_sender_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
     for i in range(MAX_WORKERS):
-        stream_sender_pool.submit(sender, stream_fetch_to_send_queue, stop, SUFFIX)
+        stream_sender_pool.submit(sender, stream_fetch_to_send_queue, stop, False)
     #stream_sender_thread = threading.Thread(target=sender, args=(stream_fetch_to_send_queue, stop))
     #stream_sender_thread.start()
 
@@ -65,7 +93,7 @@ def main():
     profile_pic_fetch_thread = threading.Thread(target=profile_pic_fetch, args=(profile_pic_fetch_queue,sock_to_uname_hash_map, profile_pic_send_queue))
     profile_pic_fetch_thread.start()
 
-    profile_pic_send_thread = threading.Thread(target=sender, args=(profile_pic_send_queue, stop, SUFFIX))
+    profile_pic_send_thread = threading.Thread(target=sender, args=(profile_pic_send_queue, stop, True))
     profile_pic_send_thread.start()
 
     #user_proc_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
@@ -77,7 +105,7 @@ def main():
     #user_proc_sender_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
     #for i in range(MAX_WORKERS):
     #    user_proc_sender_pool.submit(sender, user_req_fetch_to_send_queue, stop)
-    user_proc_sender_thread = threading.Thread(target=sender, args=(user_req_fetch_to_send_queue, stop, SUFFIX))
+    user_proc_sender_thread = threading.Thread(target=sender, args=(user_req_fetch_to_send_queue, stop, True))
     user_proc_sender_thread.start()
 
     search_fetch_queue = Queue()
@@ -91,36 +119,39 @@ def main():
     record_fetch_thread = threading.Thread(target=record_fetch_handler, args=(record_fetch_queue, record_fetch_send_queue))
     record_fetch_thread.start()
 
-    search_sender_thead = threading.Thread(target=sender, args=(search_send_queue, stop, SUFFIX))
+    search_sender_thead = threading.Thread(target=sender, args=(search_send_queue, stop, True))
     search_sender_thead.start()
 
-    record_sender_thread = threading.Thread(target=sender, args=(record_fetch_send_queue, stop, SUFFIX))
+    record_sender_thread = threading.Thread(target=sender, args=(record_fetch_send_queue, stop, True))
     record_sender_thread.start()
 
 
 
     socks_receive = dict()
+    socks_send = dict()
 
     def process(cli_sock, mask):
         try:
+            send_sock = socks_send[cli_sock]
             for encoded_data in socks_receive[cli_sock]:
                 print(encoded_data)
                 data = encoded_data.decode()
                 if data[:len(STREAM)] == STREAM:
-                    stream_queue.put((data, cli_sock))
+                    stream_queue.put((data, send_sock))
                     return
                 elif data[:len(USER_REQ)] == USER_REQ:
-                    user_req_queue.put((data, cli_sock))
+                    user_req_queue.put((data, send_sock))
                     return
                 elif data[:len(RECORD_FETCH)] == RECORD_FETCH:
-                    record_fetch_queue.put((data, cli_sock))
+                    record_fetch_queue.put((data, send_sock))
                 elif data[:len(SEARCH_FETCH)] == SEARCH_FETCH:
-                    search_fetch_queue.put((data, cli_sock))
+                    search_fetch_queue.put((data, send_sock))
                 elif data == PROFILE_PIC_FECH:
-                    profile_pic_fetch_queue.put((data, cli_sock))
+                    profile_pic_fetch_queue.put((data, send_sock))
         except ConnectionError:
             client_sel.unregister(cli_sock)
             socks_receive.pop(cli_sock)
+            socks_send.pop(cli_sock)
             if cli_sock in sock_to_uname_hash_map:
                 sock_to_uname_hash_map.pop(cli_sock)
             return
@@ -131,7 +162,9 @@ def main():
         cli_sock, addr = sock.accept()
         cli_sock.setblocking(False)
         client_sel.register(cli_sock, selectors.EVENT_READ, process)
-        socks_receive[cli_sock] = RequestIterable(cli_sock)
+        safe_cli_sock = ThreadSafeSocket(cli_sock)
+        socks_receive[cli_sock] = RequestIterable(safe_cli_sock)
+        socks_send[cli_sock] = safe_cli_sock
         print('New user connected!')
 
 

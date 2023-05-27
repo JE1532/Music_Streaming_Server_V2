@@ -9,8 +9,7 @@ TODO:
 
 
 BUG-LOG:
-1. I think transition from first to second segment while playing LongSoundExample.wav is not smooth.
-2. songs are played from second segment sometimes.
-3. streaming to vlc once leaves server unable to stream.
-4. client opens new file for every picture used without releasing filenames
-5. client seems to stop playing after finishing 1 track?
+1. I think transition from first to second segment while playing LongSoundExample.wav is not smooth. Maybe happens for other segments too
+2. streaming to vlc once leaves server unable to stream.
+3. client opens new file for every picture used without releasing filenames
+4. client seems to stop playing after finishing 1 track?
