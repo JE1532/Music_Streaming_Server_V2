@@ -7,7 +7,7 @@ SONG_RECOMMENDATION_PATH = 'music/song_recommendations.txt'
 ALBUM_RECOMMENDATIONS_PATH = 'music/playlist_recommendations.txt'
 RESPONSE_PREFIX = 'Gui/Searched/'
 DATABASE_PATH = 'songs.db'
-SEARCH = "SELECT name FROM records WHERE name LIKE ? ORDER BY listennings LIMIT 10"
+SEARCH = "SELECT internal_name FROM records WHERE external_name LIKE ? ORDER BY listennings LIMIT 10"
 PREPARE_PROMPT = lambda prompt: '%' + prompt + '%'
 RECORD_RESPONSE_FORMAT = lambda name, serial: f'#{serial}\r\n{name}\r\n'
 
@@ -16,6 +16,7 @@ def search_fetch(search_queue, send_queue):
     conn = sqlite3.connect(DATABASE_PATH)
     crsr = conn.cursor()
     while True:
+        conn.commit()
         to_search, cli_sock = search_queue.get()
         print(f'searched for: {to_search}')
         if to_search == GET_SONG_RECOMMENATIONS:

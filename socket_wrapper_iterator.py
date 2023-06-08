@@ -3,6 +3,8 @@ import ssl
 
 CHUNK_SIZE = 256
 HTTP_REQ = b'GET'
+UPLOAD_REQ = b'Gui/Upload_Playlist/LEN '
+LENGTH_FIELD_END = b'*'
 
 
 def recvall(socket):
@@ -58,6 +60,8 @@ class RequestIterable:
                 raise StopIteration
             if self.data[self.cursor:self.cursor + len(HTTP_REQ)] == HTTP_REQ:
                 return self.process_request(b'\r\n\r\n')
+            elif self.data[self.cursor: self.cursor + len(UPLOAD_REQ)] == UPLOAD_REQ:
+                return self.process_upload_request()
             else:
                 return self.process_request(self.delimiter)
 
@@ -68,5 +72,12 @@ class RequestIterable:
             return self.data[prev_cursor:self.cursor - len(delimiter)]
 
 
-
-
+        def process_upload_request(self):
+            prev_cursor = self.cursor
+            self.cursor += len(UPLOAD_REQ)
+            msg_length_string_end = find(self.data, LENGTH_FIELD_END, self.cursor, len(self.data))
+            length_field_string = self.data[self.cursor:msg_length_string_end].decode()
+            length = int(length_field_string)
+            self.cursor += len(length_field_string) + len(LENGTH_FIELD_END) + length
+            upload_request = self.data[prev_cursor:self.cursor]
+            return upload_request

@@ -1,6 +1,6 @@
 #1
-longSoundExample
+internal_name_of_longSoundExample
 #2
-song2
+internal_name_of_song2
 #3
-song3
+internal_name_of_song3

@@ -5,9 +5,9 @@ import sqlite3
 GET_PIC_PATH = lambda record_name: f'music/{record_name}/picture.jpg'
 GET_RECORD_PATH = lambda record_name: f'music/{record_name}/record.txt'
 RESPONSE_PREFIX = b'Gui/Fetched/'
-FORMAT_LIKES_AND_LISTENNINGS = lambda name, likes, listennings, type: f'name={name}&likes={likes}&listennings={listennings}&type={type}&picture='.encode()
+FORMAT_LIKES_AND_LISTENNINGS = lambda internal_name, external_name, likes, listennings, type: f'internal_name={internal_name}&external_name={external_name}&likes={likes}&listennings={listennings}&type={type}&picture='.encode()
 SONG_DATABASE = 'songs.db'
-FETCH_RECORD_SPECS = 'SELECT likes, listennings, type FROM records WHERE name=?'
+FETCH_RECORD_SPECS = 'SELECT external_name, likes, listennings, type FROM records WHERE internal_name=?'
 IS_PLAYLIST_TRACKLIST = '^tracks:'
 PLAYLIST_RESPONSE_PREFIX = 'Gui/Fetched/'.encode()
 GET_TRACKLIST_PATH = lambda playlist: f'music/{playlist}/tracklist.txt'
@@ -26,19 +26,20 @@ def record_fetch_handler(fetch_queue, send_queue):
     while True:
         fetch_request, cli_sock = fetch_queue.get()
         try:
-            prefix, record_name = fetch_request.split('/')
+            prefix, internal_name = fetch_request.split('/')
         except:
             raise Exception('Invalid Fetch Request:', fetch_request)
-        if len(record_name) >= len(IS_PLAYLIST_TRACKLIST) and record_name[:len(IS_PLAYLIST_TRACKLIST)] == IS_PLAYLIST_TRACKLIST:
-            send_queue.put((fetch_tracklist(record_name), cli_sock))
+        if len(internal_name) >= len(IS_PLAYLIST_TRACKLIST) and internal_name[:len(IS_PLAYLIST_TRACKLIST)] == IS_PLAYLIST_TRACKLIST:
+            send_queue.put((fetch_tracklist(internal_name), cli_sock))
             continue
         try:
-            likes, listennings, type_int = crsr.execute(FETCH_RECORD_SPECS, (record_name,)).fetchall()[0]
+            external_name, likes, listennings, type_int = crsr.execute(FETCH_RECORD_SPECS, (internal_name,)).fetchall()[0]
             type = INT_TO_TYPE_STRING[type_int]
-        except:
-            raise Exception(f'invalid record name: {record_name}\n request was {fetch_request}')
-        response = bytearray(RESPONSE_PREFIX + FORMAT_LIKES_AND_LISTENNINGS(record_name, likes, listennings, type))
-        with open(GET_PIC_PATH(record_name), 'rb') as pic_file:
+        except Exception as e:
+            print(e)
+            raise Exception(f'invalid record name: {internal_name}\n request was {fetch_request}')
+        response = bytearray(RESPONSE_PREFIX + FORMAT_LIKES_AND_LISTENNINGS(internal_name, external_name, likes, listennings, type))
+        with open(GET_PIC_PATH(internal_name), 'rb') as pic_file:
             pic_data = pic_file.read()
             response.extend(pic_data)
         send_queue.put((bytes(response), cli_sock))

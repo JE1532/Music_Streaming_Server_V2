@@ -12,6 +12,11 @@ from record_fetch_handler import record_fetch_handler
 from search_fetch_handler import search_fetch
 from socket_wrapper_iterator import RequestIterable
 from profile_pic_fetch_handler import profile_pic_fetch
+from upload_request_download_distributor import upload_request_download_distributor
+from playlist_assembler import playlist_assembler
+from downloader import downloader
+from database_updater import database_updater
+from request_validator import request_validator, validate_audio_filetype
 
 
 STREAM = 'GET'
@@ -19,6 +24,7 @@ USER_REQ = 'UserProcessor'
 RECORD_FETCH = 'Fetch'
 SEARCH_FETCH = 'Search'
 PROFILE_PIC_FECH = 'Gui/Get_Profile_Picture'
+UPLOAD_REQ = b'Gui/Upload_Playlist/LEN '
 
 MAX_WORKERS = 1
 
@@ -125,6 +131,30 @@ def main():
     record_sender_thread = threading.Thread(target=sender, args=(record_fetch_send_queue, stop, True))
     record_sender_thread.start()
 
+    upload_queue = Queue()
+    playlist_assembler_queue = Queue()
+    test_queue = Queue()
+    download_queue = Queue()
+    db_update_queue = Queue()
+    upload_success_send_queue = Queue()
+
+    record_download_dist_thread = threading.Thread(target=upload_request_download_distributor, args=(upload_queue, playlist_assembler_queue))
+    record_download_dist_thread.start()
+
+    playlist_assembly_thread = threading.Thread(target=playlist_assembler, args=(playlist_assembler_queue, test_queue, download_queue, upload_success_send_queue))
+    playlist_assembly_thread.start()
+
+    offline_test_thread = threading.Thread(target=request_validator, args=(test_queue, None, validate_audio_filetype))
+    offline_test_thread.start()
+
+    downloader_thread = threading.Thread(target=downloader, args=(download_queue, db_update_queue))
+    downloader_thread.start()
+
+    db_updater_thread = threading.Thread(target=database_updater, args=(db_update_queue,))
+    db_updater_thread.start()
+
+    upload_approval_sender_thread = threading.Thread(target=sender, args=(upload_success_send_queue, stop, True))
+    upload_approval_sender_thread.start()
 
 
     socks_receive = dict()
@@ -134,7 +164,10 @@ def main():
         try:
             send_sock = socks_send[cli_sock]
             for encoded_data in socks_receive[cli_sock]:
-                print(encoded_data)
+                if encoded_data[:len(UPLOAD_REQ)] == UPLOAD_REQ:
+                    start = encoded_data.find(b'*') + 1
+                    upload_queue.put((encoded_data[start:], send_sock))
+                    continue
                 data = encoded_data.decode()
                 if data[:len(STREAM)] == STREAM:
                     stream_queue.put((data, send_sock))
