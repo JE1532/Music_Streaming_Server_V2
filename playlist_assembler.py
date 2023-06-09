@@ -1,5 +1,5 @@
-UPLOAD_SUCCESSFUL_RESP = b'Gui/Upload_Successful'
-UPLOAD_FAILED_RESP = b'Gui/Upload_Failed'
+UPLOAD_SUCCESSFUL_RESP = b'Upload_Resp/Upload_Successful'
+UPLOAD_FAILED_RESP = b'Upload_Resp/Upload_Failed'
 
 
 def playlist_assembler(input_queue, test_queue, download_queue, send_queue):
