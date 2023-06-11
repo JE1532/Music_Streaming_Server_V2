@@ -23,6 +23,10 @@ AUTH_OKAY = 'UserProcessor/200'.encode()
 
 PREFIX = 'UserProcessor/'
 
+CAPTCHA_REQ_PREFIX = 'UserProcessor/Submit_Captcha/solution='
+CAPTCHA_SOL_RESPONSE = lambda valid: b'Gui/Captcha_Response/200' if valid else  b'Gui/Captcha_Response/400'
+CAPTCHA_NOT_SOLVED = b'UserProcessor/captcha_has_not_been_solved._please_request_one.'
+
 
 def log_new_user(arguments, crsr):
     """
@@ -52,23 +56,32 @@ def log_returning_user(arguments, crsr):
     return AUTH_OKAY, uname_hash, True
 
 
+def process_captcha_solution(captcha_solution_manager, cli_sock, request):
+    solution = request[len(CAPTCHA_REQ_PREFIX):]
+    return captcha_solution_manager.validate_solution(cli_sock, solution)
+
+
 PROCESS_REQUEST = {'SignUp' : log_new_user, 'SignIn' : log_returning_user}
 
 
-def fetch(request_queue, output_queue, stop, sock_to_uname_hash_map):
+def fetch(request_queue, output_queue, stop, sock_to_uname_hash_map, captcha_solution_manager):
     connection = sqlite3.connect(DATABASE_FILE)
     crsr = connection.cursor()
     #crsr.execute(CREATE_USER_TABLE)
     crsr.execute(CLEAR_TABLE)
     while not stop:
         request, sock = request_queue.get()
-        response, uname_hash, auth_successful = process_request(request, crsr)
+        response, uname_hash, auth_successful = process_request(request, crsr, captcha_solution_manager, sock)
         if auth_successful:
             sock_to_uname_hash_map[sock] = uname_hash
         output_queue.put((response, sock))
 
 
-def process_request(request, crsr):
+def process_request(request, crsr, captcha_solution_manager, cli_sock):
+    if request[:len(CAPTCHA_REQ_PREFIX)] == CAPTCHA_REQ_PREFIX:
+        return CAPTCHA_SOL_RESPONSE(process_captcha_solution(captcha_solution_manager, cli_sock, request)), None, False
+    if not captcha_solution_manager.is_approved(cli_sock):
+        return CAPTCHA_NOT_SOLVED, None, False
     url = request.split('\n')[0][len(PREFIX):]
     request_type, request_args_bulk = url.split('?')
     request_args = [arg.split('=')[1] for arg in request_args_bulk.split('&')]

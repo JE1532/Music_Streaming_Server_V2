@@ -18,6 +18,8 @@ from playlist_assembler import playlist_assembler
 from downloader import downloader
 from database_updater import database_updater
 from request_validator import request_validator, validate_audio_filetype, validate_with_virustotal
+from captcha_server import captcha_server
+from captcha_solution_manager import CaptchaManager
 
 
 STREAM = 'GET'
@@ -26,6 +28,7 @@ RECORD_FETCH = 'Fetch'
 SEARCH_FETCH = 'Search'
 PROFILE_PIC_FECH = 'Gui/Get_Profile_Picture'
 UPLOAD_REQ = b'Gui/Upload_Playlist/LEN '
+CAPTCHA_REQ_PREFIX = 'Gui/Request_Captcha'
 
 VT_API_KEY = "b26e17c04992b6609a83cdc2b97cd36f77e1eeff14d02f26eabde900d89d2bb4"
 
@@ -83,6 +86,9 @@ def main():
     stream_fetch_to_send_queue = Queue()
     user_req_queue = Queue()
     user_req_fetch_to_send_queue = Queue()
+    captcha_manager = CaptchaManager()
+    captcha_req_queue = Queue()
+    captcha_send_queue = Queue()
     sock_to_uname_hash_map = dict()
     stop = False
     #stream_fetcher_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
@@ -108,7 +114,7 @@ def main():
     #user_proc_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
     #for i in range(MAX_WORKERS):
     #    user_proc_pool.submit(login_fetch, user_req_queue, user_req_fetch_to_send_queue, stop, sock_to_uname_hash_map)
-    user_proc_thread = threading.Thread(target=login_fetch, args=(user_req_queue, user_req_fetch_to_send_queue, stop, sock_to_uname_hash_map))
+    user_proc_thread = threading.Thread(target=login_fetch, args=(user_req_queue, user_req_fetch_to_send_queue, stop, sock_to_uname_hash_map, captcha_manager))
     user_proc_thread.start()
 
     #user_proc_sender_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
@@ -116,6 +122,12 @@ def main():
     #    user_proc_sender_pool.submit(sender, user_req_fetch_to_send_queue, stop)
     user_proc_sender_thread = threading.Thread(target=sender, args=(user_req_fetch_to_send_queue, stop, True))
     user_proc_sender_thread.start()
+
+    captcha_server_thread = threading.Thread(target=captcha_server, args=(captcha_req_queue, captcha_send_queue, captcha_manager))
+    captcha_server_thread.start()
+
+    captcha_sender_thread = threading.Thread(target=sender, args=(captcha_send_queue, stop, True))
+    captcha_sender_thread.start()
 
     search_fetch_queue = Queue()
     search_send_queue = Queue()
@@ -128,8 +140,8 @@ def main():
     record_fetch_thread = threading.Thread(target=record_fetch_handler, args=(record_fetch_queue, record_fetch_send_queue))
     record_fetch_thread.start()
 
-    search_sender_thead = threading.Thread(target=sender, args=(search_send_queue, stop, True))
-    search_sender_thead.start()
+    search_sender_thread = threading.Thread(target=sender, args=(search_send_queue, stop, True))
+    search_sender_thread.start()
 
     record_sender_thread = threading.Thread(target=sender, args=(record_fetch_send_queue, stop, True))
     record_sender_thread.start()
@@ -183,6 +195,9 @@ def main():
                     return
                 elif data[:len(USER_REQ)] == USER_REQ:
                     user_req_queue.put((data, send_sock))
+                    return
+                elif data[:len(CAPTCHA_REQ_PREFIX)] == CAPTCHA_REQ_PREFIX:
+                    captcha_req_queue.put((data, send_sock))
                     return
                 elif data[:len(RECORD_FETCH)] == RECORD_FETCH:
                     record_fetch_queue.put((data, send_sock))
