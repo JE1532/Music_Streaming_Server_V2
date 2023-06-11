@@ -4,6 +4,7 @@ import concurrent.futures
 from queue import Queue
 import socket
 import ssl
+import vt
 
 from send_handler import sender
 from login_response_fetch_handler import fetch as login_fetch
@@ -16,7 +17,7 @@ from upload_request_download_distributor import upload_request_download_distribu
 from playlist_assembler import playlist_assembler
 from downloader import downloader
 from database_updater import database_updater
-from request_validator import request_validator, validate_audio_filetype
+from request_validator import request_validator, validate_audio_filetype, validate_with_virustotal
 
 
 STREAM = 'GET'
@@ -25,6 +26,8 @@ RECORD_FETCH = 'Fetch'
 SEARCH_FETCH = 'Search'
 PROFILE_PIC_FECH = 'Gui/Get_Profile_Picture'
 UPLOAD_REQ = b'Gui/Upload_Playlist/LEN '
+
+VT_API_KEY = "b26e17c04992b6609a83cdc2b97cd36f77e1eeff14d02f26eabde900d89d2bb4"
 
 MAX_WORKERS = 1
 
@@ -133,7 +136,9 @@ def main():
 
     upload_queue = Queue()
     playlist_assembler_queue = Queue()
-    test_queue = Queue()
+    offline_test_queue = Queue()
+    online_test_queue = Queue()
+    online_test_client = [vt.Client(VT_API_KEY, timeout=1800) for i in range(5)]
     download_queue = Queue()
     db_update_queue = Queue()
     upload_success_send_queue = Queue()
@@ -141,11 +146,15 @@ def main():
     record_download_dist_thread = threading.Thread(target=upload_request_download_distributor, args=(upload_queue, playlist_assembler_queue))
     record_download_dist_thread.start()
 
-    playlist_assembly_thread = threading.Thread(target=playlist_assembler, args=(playlist_assembler_queue, test_queue, download_queue, upload_success_send_queue))
+    playlist_assembly_thread = threading.Thread(target=playlist_assembler, args=(playlist_assembler_queue, offline_test_queue, download_queue, upload_success_send_queue))
     playlist_assembly_thread.start()
 
-    offline_test_thread = threading.Thread(target=request_validator, args=(test_queue, None, validate_audio_filetype))
+    offline_test_thread = threading.Thread(target=request_validator, args=(offline_test_queue, online_test_queue, validate_audio_filetype))
     offline_test_thread.start()
+
+    online_test_threads = [threading.Thread(target=request_validator, args=(online_test_queue, None, validate_with_virustotal, (online_test_client[i],))) for i in range(5)]
+    for online_test_thread in online_test_threads:
+        online_test_thread.start()
 
     downloader_thread = threading.Thread(target=downloader, args=(download_queue, db_update_queue))
     downloader_thread.start()

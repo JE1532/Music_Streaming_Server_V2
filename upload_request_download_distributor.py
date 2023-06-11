@@ -30,6 +30,7 @@ class MakeRecordRequest:
         self.data = data
         self.done = Event()
         self.valid = None
+        self.validate_image = False
 
 
 

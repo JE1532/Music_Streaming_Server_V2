@@ -16,6 +16,7 @@ def playlist_assembler(input_queue, test_queue, download_queue, send_queue):
 
 
 def process(playlist_upload_req, test_queue, download_queue):
+    playlist_upload_req.data[0].validate_image = True
     execute_for_all(playlist_upload_req.data, test_queue)
     for song_req in playlist_upload_req.data:
         if not song_req.valid:
