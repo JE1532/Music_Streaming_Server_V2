@@ -192,13 +192,13 @@ def main():
                 data = encoded_data.decode()
                 if data[:len(STREAM)] == STREAM:
                     stream_queue.put((data, send_sock))
-                    return
+                    continue
                 elif data[:len(USER_REQ)] == USER_REQ:
                     user_req_queue.put((data, send_sock))
-                    return
+                    continue
                 elif data[:len(CAPTCHA_REQ_PREFIX)] == CAPTCHA_REQ_PREFIX:
                     captcha_req_queue.put((data, send_sock))
-                    return
+                    continue
                 elif data[:len(RECORD_FETCH)] == RECORD_FETCH:
                     record_fetch_queue.put((data, send_sock))
                 elif data[:len(SEARCH_FETCH)] == SEARCH_FETCH:
