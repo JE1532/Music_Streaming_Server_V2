@@ -150,7 +150,7 @@ def main():
     playlist_assembler_queue = Queue()
     offline_test_queue = Queue()
     online_test_queue = Queue()
-    online_test_client = [vt.Client(VT_API_KEY, timeout=1800) for i in range(5)]
+    online_test_client = [vt.Client(VT_API_KEY, timeout=1800) for i in range(20)]
     download_queue = Queue()
     db_update_queue = Queue()
     upload_success_send_queue = Queue()
@@ -164,7 +164,7 @@ def main():
     offline_test_thread = threading.Thread(target=request_validator, args=(offline_test_queue, online_test_queue, validate_audio_filetype))
     offline_test_thread.start()
 
-    online_test_threads = [threading.Thread(target=request_validator, args=(online_test_queue, None, validate_with_virustotal, (online_test_client[i],))) for i in range(5)]
+    online_test_threads = [threading.Thread(target=request_validator, args=(online_test_queue, None, validate_with_virustotal, (online_test_client[i],))) for i in range(20)]
     for online_test_thread in online_test_threads:
         online_test_thread.start()
 
@@ -206,6 +206,13 @@ def main():
                 elif data == PROFILE_PIC_FECH:
                     profile_pic_fetch_queue.put((data, send_sock))
         except ConnectionError:
+            client_sel.unregister(cli_sock)
+            socks_receive.pop(cli_sock)
+            socks_send.pop(cli_sock)
+            if cli_sock in sock_to_uname_hash_map:
+                sock_to_uname_hash_map.pop(cli_sock)
+            return
+        except Exception:
             client_sel.unregister(cli_sock)
             socks_receive.pop(cli_sock)
             socks_send.pop(cli_sock)

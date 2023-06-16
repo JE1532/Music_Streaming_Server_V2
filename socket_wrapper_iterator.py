@@ -5,6 +5,8 @@ CHUNK_SIZE = 256
 HTTP_REQ = b'GET'
 UPLOAD_REQ = b'Gui/Upload_Playlist/LEN '
 LENGTH_FIELD_END = b'*'
+SEARCH_PREFIX = b'Search'
+GET_TRACKS_PREFIX = b'Fetch/^tracks'
 
 
 def recvall(socket):
@@ -31,23 +33,25 @@ def find(string, sub, start, end):
         if valid == True:
             return i
         i += 1
-    return -1
+    raise Exception('Invalid request received.')
 
 
 class RequestIterable:
-    def __init__(self, socket, delimiter=b'@'):
+    def __init__(self, socket, unlimited_length_prefix_list=[SEARCH_PREFIX, GET_TRACKS_PREFIX, HTTP_REQ, UPLOAD_REQ],delimiter=b'@'):
         self.socket = socket
         self.delimiter = delimiter
+        self.unlimited_length_prefix = unlimited_length_prefix_list
 
 
     def __iter__(self):
-        return RequestIterable.RequestIterator(recvall(self.socket), self.delimiter)
+        return RequestIterable.RequestIterator(recvall(self.socket), self.delimiter, self.unlimited_length_prefix)
 
 
     class RequestIterator:
-        def __init__(self, data, delimiter):
+        def __init__(self, data, delimiter, unlimited_length_prefix):
             self.data = data
             self.delimiter = delimiter
+            self.unlimited_length_prefix = unlimited_length_prefix
             self.cursor = 0
 
 
@@ -58,12 +62,16 @@ class RequestIterable:
         def __next__(self):
             if self.cursor == len(self.data):
                 raise StopIteration
+            request = None
             if self.data[self.cursor:self.cursor + len(HTTP_REQ)] == HTTP_REQ:
-                return self.process_request(b'\r\n\r\n')
+                request = self.process_request(b'\r\n\r\n')
             elif self.data[self.cursor: self.cursor + len(UPLOAD_REQ)] == UPLOAD_REQ:
-                return self.process_upload_request()
+                request = self.process_upload_request()
             else:
-                return self.process_request(self.delimiter)
+                request = self.process_request(self.delimiter)
+            if (not (True in [request[:len(prefix)] == prefix for prefix in self.unlimited_length_prefix])) and len(request) > 200:
+                raise Exception('Request too long.')
+            return request
 
 
         def process_request(self, delimiter):
