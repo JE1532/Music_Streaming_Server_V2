@@ -50,13 +50,19 @@ def request_validator(input_queue, output_queue, test, args=None):
 
 
 def validate_audio_filetype(make_song_req, args):
+    if len(make_song_req.external_name) > 64:
+        return False
     if make_song_req.validate_image:
+        if len(make_song_req.picture) > 1000000:
+            return False
         img = Image.open(BytesIO(make_song_req.picture))
         try:
             img.load()
         except:
             return False
     if make_song_req.type == RecordType.SONG:
+        if len(make_song_req.data) > 1000000000:
+            return False
         p = subprocess.Popen(FFPROBE_AUDIO_VALIDATION_COMMAND, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         p_out, p_err = p.communicate(input=make_song_req.data)
         if p_out == b'':

@@ -16,10 +16,13 @@ INSERT = lambda table, values : str.format('INSERT INTO {} VALUES({});', table, 
 LOG_NEW_USER = "UserProcessor/SignUp"
 LOG_RETURNING_USER = "UserProcessor/SignIn"
 
+MAX_CREDENTIAL_LENGTH = 64
+
 USER_ALREADY_EXISTS = 'UserProcessor/user_already_exists'.encode()
 NO_SUCH_USER = 'UserProcessor/no_such_user'.encode()
 WRONG_PASSWORD = 'UserProcessor/wrong_password'.encode()
 AUTH_OKAY = 'UserProcessor/200'.encode()
+CREDENTIAL_TOO_LONG = 'UserProcessor/credential_too_long'
 
 PREFIX = 'UserProcessor/'
 
@@ -33,6 +36,9 @@ def log_new_user(arguments, crsr):
         :param arguments: [{username}, {password}, {email}]
         :return:
     """
+    for arg in arguments:
+        if len(arg) > MAX_CREDENTIAL_LENGTH:
+            return
     uname_hash = hash_func(arguments[0].encode()).hexdigest()
     if list(crsr.execute(SELECT('users', '*',), (uname_hash,))):
         return USER_ALREADY_EXISTS, uname_hash, False

@@ -6,6 +6,9 @@ def playlist_assembler(input_queue, test_queue, download_queue, send_queue):
     while True:
         playlist_upload_req, cli_sock = input_queue.get()
         try:
+            if len(playlist_upload_req.external_name) > 64:
+                send_queue.put((UPLOAD_FAILED_RESP, cli_sock))
+                continue
             success = process(playlist_upload_req, test_queue, download_queue)
             if success:
                 send_queue.put((UPLOAD_SUCCESSFUL_RESP, cli_sock))
