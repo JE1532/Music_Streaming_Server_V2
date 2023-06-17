@@ -1,5 +1,6 @@
 import sqlite3
 from hashlib import sha3_256 as hash_func
+import time
 
 
 DATABASE_FILE = 'users.db'

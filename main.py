@@ -23,12 +23,12 @@ from captcha_solution_manager import CaptchaManager
 
 
 STREAM = 'GET'
-USER_REQ = 'UserProcessor'
+USER_REQ = b'UserProcessor'
 RECORD_FETCH = 'Fetch'
 SEARCH_FETCH = 'Search'
 PROFILE_PIC_FECH = 'Gui/Get_Profile_Picture'
 UPLOAD_REQ = b'Gui/Upload_Playlist/LEN '
-CAPTCHA_REQ_PREFIX = 'Gui/Request_Captcha'
+CAPTCHA_REQ_PREFIX = b'Gui/Request_Captcha'
 
 VT_API_KEY = "b26e17c04992b6609a83cdc2b97cd36f77e1eeff14d02f26eabde900d89d2bb4"
 
@@ -185,19 +185,21 @@ def main():
         try:
             send_sock = socks_send[cli_sock]
             for encoded_data in socks_receive[cli_sock]:
-                if encoded_data[:len(UPLOAD_REQ)] == UPLOAD_REQ:
+                if encoded_data[:len(USER_REQ)] == USER_REQ:
+                    user_req_queue.put((encoded_data.decode(), send_sock))
+                    continue
+                elif encoded_data[:len(CAPTCHA_REQ_PREFIX)] == CAPTCHA_REQ_PREFIX:
+                    captcha_req_queue.put((encoded_data.decode(), send_sock))
+                    continue
+                elif not send_sock in sock_to_uname_hash_map:
+                    continue
+                elif encoded_data[:len(UPLOAD_REQ)] == UPLOAD_REQ:
                     start = encoded_data.find(b'*') + 1
                     upload_queue.put((encoded_data[start:], send_sock))
                     continue
                 data = encoded_data.decode()
                 if data[:len(STREAM)] == STREAM:
                     stream_queue.put((data, send_sock))
-                    continue
-                elif data[:len(USER_REQ)] == USER_REQ:
-                    user_req_queue.put((data, send_sock))
-                    continue
-                elif data[:len(CAPTCHA_REQ_PREFIX)] == CAPTCHA_REQ_PREFIX:
-                    captcha_req_queue.put((data, send_sock))
                     continue
                 elif data[:len(RECORD_FETCH)] == RECORD_FETCH:
                     record_fetch_queue.put((data, send_sock))
