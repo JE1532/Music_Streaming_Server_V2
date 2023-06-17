@@ -15,6 +15,12 @@ INT_TO_TYPE_STRING = {0 : 'Song', 1 : 'Playlist'}
 
 
 def record_fetch_handler(fetch_queue, send_queue):
+    """
+    Runs Record Fetcher thread. Blocks.
+    :param fetch_queue: (Queue) of fetch requests from clients)
+    :param send_queue: (Queue) connected to senders for responses.
+    :return:
+    """
     conn = sqlite3.connect(SONG_DATABASE)
     crsr = conn.cursor()
     #crsr.execute('DROP TABLE records;')

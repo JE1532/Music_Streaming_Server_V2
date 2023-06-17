@@ -27,6 +27,14 @@ def playlist_assembler(input_queue, test_queue, download_queue, send_queue):
 
 
 def process(playlist_upload_req, test_queue, download_queue):
+    """
+    Process a single playlist upload request, by delivering all files to testers,
+    and then to downloaders.
+    :param playlist_upload_req: (MakeRecordRequest) request to upload playlist
+    :param test_queue: (Queue) for passing requests to request_validators
+    :param download_queue: (Queue) for passing requests to downloaders
+    :return: None
+    """
     playlist_upload_req.data[0].validate_image = True
     execute_for_all(playlist_upload_req.data, test_queue)
     for song_req in playlist_upload_req.data:
@@ -39,6 +47,12 @@ def process(playlist_upload_req, test_queue, download_queue):
 
 
 def execute_for_all(requests, q):
+    """
+    Deliver all requests in requests to q and wait for action completion.
+    :param requests: (list(MakeRecordRequest)) list of requests.
+    :param q: (Queue) to deliver requests to validators or downloaders.
+    :return:
+    """
     for song_req in requests:
         if song_req.done.isSet():
             song_req.done.clear()

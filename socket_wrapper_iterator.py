@@ -37,6 +37,9 @@ def find(string, sub, start, end):
 
 
 class RequestIterable:
+    """
+    This iterable class produces an iterator of requests whenever the socket is readable upon request.
+    """
     def __init__(self, socket, unlimited_length_prefix_list=[SEARCH_PREFIX, GET_TRACKS_PREFIX, HTTP_REQ, UPLOAD_REQ],delimiter=b'@'):
         self.socket = socket
         self.delimiter = delimiter
@@ -50,6 +53,9 @@ class RequestIterable:
 
 
     class RequestIterator:
+        """
+        Iterator made by this iterable class.
+        """
         def __init__(self, data, delimiter, unlimited_length_prefix, parent):
             self.data = data
             self.delimiter = delimiter

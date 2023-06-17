@@ -7,6 +7,13 @@ DEFAULT_PROFILE_PIC_PATH = 'users/profile_pictures/default.jpg'
 
 
 def profile_pic_fetch(input_queue, socket_to_uname_hash, output_queue):
+    """
+    Runs Profile Pic Fetcher thread. Blocks.
+    :param input_queue: (Queue) of requests from server (as bytes)
+    :param socket_to_uname_hash: (dict(ThreadSafeSocket, str)) mapping from client sockets to hash of usernames
+    :param output_queue: (Queue) for responses for sending to clients
+    :return:
+    """
     while True:
         request, cli_sock = input_queue.get()
         if not cli_sock in socket_to_uname_hash:

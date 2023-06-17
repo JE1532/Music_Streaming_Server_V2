@@ -41,6 +41,13 @@ Age: 11834\r
 
 
 def fetch(request_queue, output_queue, stop):
+    """
+    Runs Stream Fetcher thread. Blocks.
+    :param request_queue:
+    :param output_queue:
+    :param stop:
+    :return:
+    """
     request, sock = request_queue.get()
     while not stop:
         print('starting fetch')

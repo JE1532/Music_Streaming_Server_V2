@@ -50,6 +50,12 @@ def request_validator(input_queue, output_queue, test, args=None):
 
 
 def validate_audio_filetype(make_song_req, args):
+    """
+    Validate audio filetypes internally with Pillow module and ffmpeg.
+    :param make_song_req:
+    :param args:
+    :return:
+    """
     if len(make_song_req.external_name) > 64:
         return False
     if make_song_req.validate_image:
@@ -80,6 +86,12 @@ def validate_audio_filetype(make_song_req, args):
 
 
 def validate_with_virustotal(make_song_req, args):
+    """
+    Validate request files with virustotal scanning.
+    :param make_song_req:
+    :param args:
+    :return:
+    """
     vt_client = args[0]
     #audio_valid = analyze_file_with_vt(vt_client, make_song_req.data)
     audio_valid = True

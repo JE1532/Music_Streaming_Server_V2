@@ -13,6 +13,12 @@ RECORD_RESPONSE_FORMAT = lambda name, serial: f'#{serial}\r\n{name}\r\n'
 
 
 def search_fetch(search_queue, send_queue):
+    """
+    Runs Search Fetcher thread. Blocks.
+    :param search_queue: (Queue) of bytes requests from clients
+    :param send_queue: (Queue) send queue for responses.
+    :return: None
+    """
     conn = sqlite3.connect(DATABASE_PATH)
     crsr = conn.cursor()
     while True:
