@@ -95,7 +95,7 @@ def fetch(request_queue, output_queue, stop, sock_to_uname_hash_map, captcha_sol
     connection = sqlite3.connect(DATABASE_FILE)
     crsr = connection.cursor()
     #crsr.execute(CREATE_USER_TABLE)
-    crsr.execute(CLEAR_TABLE)
+    #crsr.execute(CLEAR_TABLE)
     while not stop:
         request, sock = request_queue.get()
         if request == LOG_OUT_REQUEST:

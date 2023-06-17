@@ -32,7 +32,7 @@ CAPTCHA_REQ_PREFIX = b'Gui/Request_Captcha'
 
 VT_API_KEY = "b26e17c04992b6609a83cdc2b97cd36f77e1eeff14d02f26eabde900d89d2bb4"
 
-MAX_WORKERS = 1
+MAX_WORKERS = 20
 
 SERVER = ('0.0.0.0', 9010)
 KEYFILE = 'server.key'
@@ -128,54 +128,77 @@ def main():
     stream_fetcher_thread = threading.Thread(target=stream_fetch, args=(stream_queue, stream_fetch_to_send_queue, stop))
     stream_fetcher_thread.start()
 
-    stream_sender_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
+    stream_senders = []
     for i in range(MAX_WORKERS):
-        stream_sender_pool.submit(sender, stream_fetch_to_send_queue, stop, False)
-    #stream_sender_thread = threading.Thread(target=sender, args=(stream_fetch_to_send_queue, stop))
-    #stream_sender_thread.start()
+        stream_sender_thread = threading.Thread(target=sender, args=(stream_fetch_to_send_queue, stop))
+        stream_sender_thread.start()
+        stream_senders.append(stream_sender_thread)
 
     profile_pic_fetch_queue = Queue()
     profile_pic_send_queue = Queue()
-    profile_pic_fetch_thread = threading.Thread(target=profile_pic_fetch, args=(profile_pic_fetch_queue,sock_to_uname_hash_map, profile_pic_send_queue))
-    profile_pic_fetch_thread.start()
+    profile_pic_fetch_threads = []
+    for i in range(MAX_WORKERS):
+        profile_pic_fetch_threads.append(threading.Thread(target=profile_pic_fetch, args=(profile_pic_fetch_queue,sock_to_uname_hash_map, profile_pic_send_queue)))
+    for profile_pic_fetch_thread in profile_pic_fetch_threads:
+        profile_pic_fetch_thread.start()
+    pro_pic_send_threads = []
+    for i in range(MAX_WORKERS):
+        profile_pic_send_thread = threading.Thread(target=sender, args=(profile_pic_send_queue, stop, True))
+        pro_pic_send_threads.append(profile_pic_send_thread)
+        profile_pic_send_thread.start()
 
-    profile_pic_send_thread = threading.Thread(target=sender, args=(profile_pic_send_queue, stop, True))
-    profile_pic_send_thread.start()
+    user_proc_threads = []
+    for i in range(MAX_WORKERS):
+        user_proc_thread = threading.Thread(target=login_fetch, args=(user_req_queue, user_req_fetch_to_send_queue, stop, sock_to_uname_hash_map, captcha_manager))
+        user_proc_thread.start()
+        user_proc_threads.append(user_proc_thread)
 
-    #user_proc_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
-    #for i in range(MAX_WORKERS):
-    #    user_proc_pool.submit(login_fetch, user_req_queue, user_req_fetch_to_send_queue, stop, sock_to_uname_hash_map)
-    user_proc_thread = threading.Thread(target=login_fetch, args=(user_req_queue, user_req_fetch_to_send_queue, stop, sock_to_uname_hash_map, captcha_manager))
-    user_proc_thread.start()
+    user_proc_senders = []
+    for i in range(MAX_WORKERS):
+        user_proc_sender_thread = threading.Thread(target=sender, args=(user_req_fetch_to_send_queue, stop, True))
+        user_proc_sender_thread.start()
+        user_proc_senders.append(user_proc_sender_thread)
 
-    #user_proc_sender_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
-    #for i in range(MAX_WORKERS):
-    #    user_proc_sender_pool.submit(sender, user_req_fetch_to_send_queue, stop)
-    user_proc_sender_thread = threading.Thread(target=sender, args=(user_req_fetch_to_send_queue, stop, True))
-    user_proc_sender_thread.start()
+    captcha_server_threads = []
+    for i in range(MAX_WORKERS):
+        captcha_server_thread = threading.Thread(target=captcha_server, args=(captcha_req_queue, captcha_send_queue, captcha_manager))
+        captcha_server_thread.start()
+        captcha_server_threads.append(captcha_server_thread)
 
-    captcha_server_thread = threading.Thread(target=captcha_server, args=(captcha_req_queue, captcha_send_queue, captcha_manager))
-    captcha_server_thread.start()
-
-    captcha_sender_thread = threading.Thread(target=sender, args=(captcha_send_queue, stop, True))
-    captcha_sender_thread.start()
+    captcha_sender_threads = []
+    for i in range(MAX_WORKERS):
+        captcha_sender_thread = threading.Thread(target=sender, args=(captcha_send_queue, stop, True))
+        captcha_sender_thread.start()
+        captcha_sender_threads.append(captcha_sender_thread)
 
     search_fetch_queue = Queue()
     search_send_queue = Queue()
     record_fetch_queue = Queue()
     record_fetch_send_queue = Queue()
 
-    search_fetch_thread = threading.Thread(target=search_fetch, args=(search_fetch_queue, search_send_queue))
-    search_fetch_thread.start()
+    search_fetch_threads = []
+    for i in range(MAX_WORKERS):
+        search_fetch_thread = threading.Thread(target=search_fetch, args=(search_fetch_queue, search_send_queue))
+        search_fetch_thread.start()
+        search_fetch_threads.append(search_fetch_thread)
 
-    record_fetch_thread = threading.Thread(target=record_fetch_handler, args=(record_fetch_queue, record_fetch_send_queue))
-    record_fetch_thread.start()
+    record_fetch_threads = []
+    for i in range(MAX_WORKERS):
+        record_fetch_thread = threading.Thread(target=record_fetch_handler, args=(record_fetch_queue, record_fetch_send_queue))
+        record_fetch_thread.start()
+        record_fetch_threads.append(record_fetch_thread)
 
-    search_sender_thread = threading.Thread(target=sender, args=(search_send_queue, stop, True))
-    search_sender_thread.start()
+    search_sender_threads = []
+    for i in range(MAX_WORKERS):
+        search_sender_thread = threading.Thread(target=sender, args=(search_send_queue, stop, True))
+        search_sender_thread.start()
+        search_sender_threads.append(search_sender_thread)
 
-    record_sender_thread = threading.Thread(target=sender, args=(record_fetch_send_queue, stop, True))
-    record_sender_thread.start()
+    record_sender_threads = []
+    for i in range(MAX_WORKERS):
+        record_sender_thread = threading.Thread(target=sender, args=(record_fetch_send_queue, stop, True))
+        record_sender_thread.start()
+        record_sender_threads.append(record_sender_thread)
 
     upload_queue = Queue()
     playlist_assembler_queue = Queue()
@@ -186,27 +209,45 @@ def main():
     db_update_queue = Queue()
     upload_success_send_queue = Queue()
 
-    record_download_dist_thread = threading.Thread(target=upload_request_download_distributor, args=(upload_queue, playlist_assembler_queue))
-    record_download_dist_thread.start()
+    record_download_dist_threads = []
+    for i in range(MAX_WORKERS):
+        record_download_dist_thread = threading.Thread(target=upload_request_download_distributor, args=(upload_queue, playlist_assembler_queue))
+        record_download_dist_thread.start()
+        record_download_dist_threads.append(record_download_dist_thread)
 
-    playlist_assembly_thread = threading.Thread(target=playlist_assembler, args=(playlist_assembler_queue, offline_test_queue, download_queue, upload_success_send_queue))
-    playlist_assembly_thread.start()
+    playlist_assembly_threads = []
+    for i in range(MAX_WORKERS):
+        playlist_assembly_thread = threading.Thread(target=playlist_assembler, args=(playlist_assembler_queue, offline_test_queue, download_queue, upload_success_send_queue))
+        playlist_assembly_thread.start()
+        playlist_assembly_threads.append(playlist_assembly_thread)
 
-    offline_test_thread = threading.Thread(target=request_validator, args=(offline_test_queue, online_test_queue, validate_audio_filetype))
-    offline_test_thread.start()
+    offline_test_threads = []
+    for i in range(MAX_WORKERS):
+        offline_test_thread = threading.Thread(target=request_validator, args=(offline_test_queue, online_test_queue, validate_audio_filetype))
+        offline_test_thread.start()
+        offline_test_threads.append(offline_test_thread)
 
     online_test_threads = [threading.Thread(target=request_validator, args=(online_test_queue, None, validate_with_virustotal, (online_test_client[i],))) for i in range(20)]
     for online_test_thread in online_test_threads:
         online_test_thread.start()
 
-    downloader_thread = threading.Thread(target=downloader, args=(download_queue, db_update_queue))
-    downloader_thread.start()
+    downloader_threads = []
+    for i in range(MAX_WORKERS):
+        downloader_thread = threading.Thread(target=downloader, args=(download_queue, db_update_queue))
+        downloader_thread.start()
+        downloader_threads.append(downloader_thread)
 
-    db_updater_thread = threading.Thread(target=database_updater, args=(db_update_queue,))
-    db_updater_thread.start()
+    db_updater_threads = []
+    for i in range(MAX_WORKERS):
+        db_updater_thread = threading.Thread(target=database_updater, args=(db_update_queue,))
+        db_updater_thread.start()
+        db_updater_threads.append(db_updater_thread)
 
-    upload_approval_sender_thread = threading.Thread(target=sender, args=(upload_success_send_queue, stop, True))
-    upload_approval_sender_thread.start()
+    upload_approval_sender_threads = []
+    for i in range(MAX_WORKERS):
+        upload_approval_sender_thread = threading.Thread(target=sender, args=(upload_success_send_queue, stop, True))
+        upload_approval_sender_thread.start()
+        upload_approval_sender_threads.append(upload_approval_sender_thread)
 
 
     socks_receive = dict()
