@@ -3,6 +3,14 @@ UPLOAD_FAILED_RESP = b'Upload_Resp/Upload_Failed'
 
 
 def playlist_assembler(input_queue, test_queue, download_queue, send_queue):
+    """
+    Runs Playlist Assembler thread. Blocks.
+    :param input_queue: (Queue(MakeRecordRequest)) of incoming client requests
+    :param test_queue: (Queue) for delivering requests to request validators for security tests
+    :param download_queue: (Queue) for delivering requests to be downloaded
+    :param send_queue: (Queue) for user response sending.
+    :return: None
+    """
     while True:
         playlist_upload_req, cli_sock = input_queue.get()
         try:

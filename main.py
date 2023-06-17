@@ -42,6 +42,9 @@ SUFFIX = b'@'
 
 
 class ThreadSafeSocket:
+    """
+    Threadsafe wrapper for ssl.sslsocket.
+    """
     def __init__(self, sock):
         self.sock = sock
         self.lock = threading.Lock()
@@ -70,6 +73,9 @@ class ThreadSafeSocket:
 
 
 class ThreadSafeDict(dict):
+    """
+    Threadsafe wrapper for python's built in dict type.
+    """
     def __init__(self):
         super().__init__()
         self.lock = threading.Lock()
@@ -92,6 +98,10 @@ class ThreadSafeDict(dict):
 
 
 def main():
+    """
+    Initializes all threads and functions as receiving thread. Blocks.
+    :return: None
+    """
     client_sel = selectors.DefaultSelector()
     ser_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     ser_sock = ssl.wrap_socket(
@@ -203,6 +213,12 @@ def main():
     socks_send = dict()
 
     def process(cli_sock, mask):
+        """
+        Invoked by selector. Process readable socket. deliver messages from socket to appropriate threads (resolvers).
+        :param cli_sock: (ssl.sslsocket) client socket
+        :param mask:
+        :return: None
+        """
         try:
             send_sock = socks_send[cli_sock]
             for encoded_data in socks_receive[cli_sock]:
@@ -246,6 +262,12 @@ def main():
 
 
     def accept(sock, mask):
+        """
+        Invoked by selector. Logs new readable sockets.
+        :param sock:
+        :param mask:
+        :return:
+        """
         cli_sock, addr = sock.accept()
         cli_sock.setblocking(False)
         client_sel.register(cli_sock, selectors.EVENT_READ, process)

@@ -35,8 +35,9 @@ CAPTCHA_NOT_SOLVED = b'UserProcessor/captcha_has_not_been_solved._please_request
 
 def log_new_user(arguments, crsr):
     """
+        Logs a new user.
         :param arguments: [{username}, {password}, {email}]
-        :return:
+        :return: (str) to send to client, (str) username hash, (bool) login successful or not
     """
     for arg in arguments:
         if len(arg) > MAX_CREDENTIAL_LENGTH:
@@ -51,8 +52,9 @@ def log_new_user(arguments, crsr):
 
 def log_returning_user(arguments, crsr):
     """
+            Logs a returning user.
             :param arguments: [{username}, {password}]
-            :return:
+            :return: (str) to send to client, (str) username hash, (bool) login successful or not
     """
     uname_hash = hash_func(arguments[0].encode()).hexdigest()
     password_hash = hash_func(arguments[1].encode()).hexdigest()
@@ -65,6 +67,14 @@ def log_returning_user(arguments, crsr):
 
 
 def process_captcha_solution(captcha_solution_manager, cli_sock, request):
+    """
+    Process a captcha solution using solution manager, update solution manager accordingly and return whether solution was
+    correct.
+    :param captcha_solution_manager: (CaptchaSolutionManager) manager
+    :param cli_sock: (ThreadSafeSocket) client socket
+    :param request: (str) request sent by the client for solution submition
+    :return:
+    """
     solution = request[len(CAPTCHA_REQ_PREFIX):]
     return captcha_solution_manager.validate_solution(cli_sock, solution)
 
@@ -73,6 +83,15 @@ PROCESS_REQUEST = {'SignUp' : log_new_user, 'SignIn' : log_returning_user}
 
 
 def fetch(request_queue, output_queue, stop, sock_to_uname_hash_map, captcha_solution_manager):
+    """
+    Runs UserProcessor thread. Blocks.
+    :param request_queue: (Queue) of incoming requests.
+    :param output_queue: (Queue) of replies to send via sender
+    :param stop: boolean to indicate termination
+    :param sock_to_uname_hash_map: (dict(ThreadSafeSocket, str)) mapping between client socket and hashes of their usernames
+    :param captcha_solution_manager: (CaptchaSolutionManager) captha solution manager
+    :return: None
+    """
     connection = sqlite3.connect(DATABASE_FILE)
     crsr = connection.cursor()
     #crsr.execute(CREATE_USER_TABLE)
@@ -90,6 +109,14 @@ def fetch(request_queue, output_queue, stop, sock_to_uname_hash_map, captcha_sol
 
 
 def process_request(request, crsr, captcha_solution_manager, cli_sock):
+    """
+    Process a single authentication / captcha solution validation request.
+    :param request: (bytes) request as a bytestring
+    :param crsr: (sqlite3.Cursor) for users.db
+    :param captcha_solution_manager: (CaptchaSolutionManager) captcha solution manager.
+    :param cli_sock: (ThreadSafeSoskcet) client socket.
+    :return:
+    """
     if request[:len(CAPTCHA_REQ_PREFIX)] == CAPTCHA_REQ_PREFIX:
         return CAPTCHA_SOL_RESPONSE(process_captcha_solution(captcha_solution_manager, cli_sock, request)), None, False
     if not captcha_solution_manager.is_approved(cli_sock):

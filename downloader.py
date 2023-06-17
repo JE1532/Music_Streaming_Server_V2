@@ -34,6 +34,11 @@ def downloader(input_queue, output_queue):
             continue
 
 def process(curr_req):
+    """
+    Handle download of a single request.
+    :param curr_req: (MakeRecordRequest) request to handle.
+    :return: None
+    """
     os.mkdir(DIR_PATH(curr_req.internal_name))
     if curr_req.type == dist.RecordType.SONG:
         p = subprocess.Popen(FFMPEG_COMMAND(M3U8_PATH(curr_req.internal_name), SEGMENT_NAME_FORMAT(curr_req.internal_name), SEGMENT_TIME), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -48,6 +53,11 @@ def process(curr_req):
 
 
 def construct_tracklist(playlist_req):
+    """
+    Constructs the tracklist of a playlist.
+    :param playlist_req: (MakeRecordRequest) request for uploading the playlist.
+    :return: (str) the tracklist in format for file saving.
+    """
     tracklist = []
     for i in range(len(playlist_req.data)):
         tracklist.append(TRACKLIST_TRACK_PREFIX(i))

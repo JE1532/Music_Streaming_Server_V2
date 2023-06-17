@@ -24,6 +24,13 @@ def database_updater(input_queue):
 
 
 def process(curr_req, crsr, conn):
+    """
+    Add a single request to database.
+    :param curr_req: (MakeRecordRequest) request
+    :param crsr: (sqlite3.Cursor) for songs.db
+    :param conn: (qlite3.Connection) for songs.db
+    :return: None
+    """
     crsr.execute(ADD_TO_DB, (curr_req.internal_name, curr_req.external_name, 0, 0, 0 if curr_req.type == RecordType.SONG else 1))
     conn.commit()
     curr_req.done.set()
