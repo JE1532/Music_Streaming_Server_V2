@@ -69,6 +69,27 @@ class ThreadSafeSocket:
             self.lock.release()
 
 
+class ThreadSafeDict(dict):
+    def __init__(self):
+        super().__init__()
+        self.lock = threading.Lock()
+
+
+    def __getitem__(self, item):
+        with self.lock:
+            val = super().__getitem__(item)
+        return val
+
+
+    def __setitem__(self, key, value):
+        with self.lock:
+            super().__setitem__(key, value)
+
+
+    def pop(self, key):
+        with self.lock:
+            super().pop(key)
+
 
 def main():
     client_sel = selectors.DefaultSelector()
@@ -89,7 +110,7 @@ def main():
     captcha_manager = CaptchaManager()
     captcha_req_queue = Queue()
     captcha_send_queue = Queue()
-    sock_to_uname_hash_map = dict()
+    sock_to_uname_hash_map = ThreadSafeDict()
     stop = False
     #stream_fetcher_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
     #for i in range(MAX_WORKERS):

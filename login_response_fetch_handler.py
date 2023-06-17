@@ -16,6 +16,7 @@ INSERT = lambda table, values : str.format('INSERT INTO {} VALUES({});', table, 
 
 LOG_NEW_USER = "UserProcessor/SignUp"
 LOG_RETURNING_USER = "UserProcessor/SignIn"
+LOG_OUT_REQUEST = 'UserProcessor/LogOut'
 
 MAX_CREDENTIAL_LENGTH = 64
 
@@ -78,6 +79,10 @@ def fetch(request_queue, output_queue, stop, sock_to_uname_hash_map, captcha_sol
     crsr.execute(CLEAR_TABLE)
     while not stop:
         request, sock = request_queue.get()
+        if request == LOG_OUT_REQUEST:
+            sock_to_uname_hash_map.pop(sock)
+            print('User logged out.')
+            continue
         response, uname_hash, auth_successful = process_request(request, crsr, captcha_solution_manager, sock)
         if auth_successful:
             sock_to_uname_hash_map[sock] = uname_hash
