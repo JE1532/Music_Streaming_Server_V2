@@ -103,6 +103,7 @@ def fetch(request_queue, output_queue, stop, sock_to_uname_hash_map, captcha_sol
             print('User logged out.')
             continue
         response, uname_hash, auth_successful = process_request(request, crsr, captcha_solution_manager, sock)
+        connection.commit()
         if auth_successful:
             sock_to_uname_hash_map[sock] = uname_hash
         output_queue.put((response, sock))
